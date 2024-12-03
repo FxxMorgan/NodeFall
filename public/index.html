@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fall Detection Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <style>
+        #map {
+            height: 500px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold mb-6 text-center">Fall Detection Dashboard</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div id="map" class="mb-4 rounded-lg shadow-lg"></div>
+            <div>
+                <table id="alert-table" class="display w-full rounded-lg shadow-lg">
+                    <thead class="bg-blue-500 text-white">
+                        <tr>
+                            <th class="p-2">Device ID</th>
+                            <th class="p-2">Latitude</th>
+                            <th class="p-2">Longitude</th>
+                            <th class="p-2">Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script>
+        const map = L.map('map').setView([-36.826993, -73.049766], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        const markers = {};
+
+        $(document).ready(function() {
+            const table = $('#alert-table').DataTable();
+
+            async function fetchAlerts() {
+                const response = await fetch('/alerts');
+                const alerts = await response.json();
+                table.clear();
+                alerts.forEach(alert => {
+                    table.row.add([
+                        alert.deviceId,
+                        alert.latitude,
+                        alert.longitude,
+                        alert.timestamp
+                    ]);
+
+                    if (!markers[alert.deviceId]) {
+                        const marker = L.marker([alert.latitude, alert.longitude])
+                            .addTo(map)
+                            .bindPopup(`Device ID: ${alert.deviceId}<br>Time: ${alert.timestamp}`);
+                        markers[alert.deviceId] = marker;
+                    } else {
+                        markers[alert.deviceId].setLatLng([alert.latitude, alert.longitude]);
+                        markers[alert.deviceId].setPopupContent(`Device ID: ${alert.deviceId}<br>Time: ${alert.timestamp}`);
+                    }
+                });
+                table.draw();
+            }
+
+            fetchAlerts(); // Initial fetch
+            setInterval(fetchAlerts, 5000); // Fetch alerts every 5 seconds
+
+            $('#alert-table tbody').on('click', 'tr', function() {
+                const data = table.row(this).data();
+                const deviceId = data[0];
+                const marker = markers[deviceId];
+                if (marker) {
+                    map.setView(marker.getLatLng(), 15);
+                    marker.openPopup();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

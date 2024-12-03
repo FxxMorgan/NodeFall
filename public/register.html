@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caregiver Registration - Fall Detection System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .registration-form {
+            max-width: 500px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .form-title {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .alert {
+            margin-bottom: 1rem;
+            display: none;
+        }
+        .form-floating {
+            margin-bottom: 1rem;
+        }
+        .btn-register {
+            width: 100%;
+            padding: 0.8rem;
+            font-size: 1.1rem;
+        }
+        .telegram-info {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="registration-form">
+            <h2 class="form-title">Caregiver Registration</h2>
+            
+            <div class="alert alert-danger" id="errorAlert" role="alert"></div>
+            <div class="alert alert-success" id="successAlert" role="alert"></div>
+
+            <form id="registrationForm">
+                <div class="form-floating">
+                    <input type="text" class="form-control" id="caregiverId" name="caregiverId" 
+                           placeholder="Caregiver ID" required disabled>
+                    <label for="caregiverId">Caregiver ID</label>
+                </div>
+
+                <div class="form-floating">
+                    <input type="email" class="form-control" id="email" name="email" 
+                           placeholder="name@example.com" required>
+                    <label for="email">Email address</label>
+                </div>
+
+                <div class="form-floating">
+                    <input type="text" class="form-control" id="deviceId" name="deviceId" 
+                           placeholder="Device ID" required>
+                    <label for="deviceId">Device ID</label>
+                </div>
+
+                <div class="form-floating">
+                    <input type="tel" class="form-control" id="phoneNumber" name="phoneNumber" 
+                           placeholder="Phone Number" required>
+                    <label for="phoneNumber">Phone Number</label>
+                </div>
+
+                <div class="form-floating">
+                    <input type="text" class="form-control" id="chatId" name="chatId" 
+                           placeholder="Chat ID (from Telegram)" required>
+                    <label for="chatId">Chat ID</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-register mt-3">Register</button>
+            </form>
+
+            <div class="telegram-info text-center">
+                <p>Note: Make sure to start a chat with our Telegram bot before registering.<br>
+                Bot username: @FallDetectionAlertBot</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('registrationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Hide any previous alerts
+            document.getElementById('errorAlert').style.display = 'none';
+            document.getElementById('successAlert').style.display = 'none';
+
+            // Basic validation
+            const inputs = this.querySelectorAll('input[required]');
+            let isValid = true;
+
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    isValid = false;
+                    input.classList.add('is-invalid');
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+
+            // Email validation
+            const email = document.getElementById('email');
+            if (email.value && !email.value.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+                isValid = false;
+                email.classList.add('is-invalid');
+            }
+
+            // Phone validation
+            const phone = document.getElementById('phoneNumber');
+            if (phone.value && !phone.value.match(/^\+?[\d\s-]{8,}$/)) {
+                isValid = false;
+                phone.classList.add('is-invalid');
+            }
+
+            if (!isValid) {
+                showError('Please fill in all fields correctly.');
+                return;
+            }
+
+            // Prepare the data
+            const formData = {
+                caregiverId: document.getElementById('caregiverId').value,
+                email: document.getElementById('email').value,
+                deviceId: document.getElementById('deviceId').value,
+                phoneNumber: document.getElementById('phoneNumber').value,
+                chatId: document.getElementById('chatId').value
+            };
+
+            // Send the data to the server
+            try {
+                const response = await fetch('http://localhost:3000/caregivers/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccess('Registration successful!');
+                    this.reset(); // Clear the form
+                } else {
+                    showError(data.error || 'Registration failed. Please try again.');
+                }
+            } catch (error) {
+                showError('Error connecting to server. Please try again.');
+                console.error('Error:', error);
+            }
+        });
+
+        // Helper functions to show alerts
+        function showError(message) {
+            const alert = document.getElementById('errorAlert');
+            alert.textContent = message;
+            alert.style.display = 'block';
+        }
+
+        function showSuccess(message) {
+            const alert = document.getElementById('successAlert');
+            alert.textContent = message;
+            alert.style.display = 'block';
+        }
+
+        // Remove invalid class on input
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', function() {
+                this.classList.remove('is-invalid');
+            });
+        });
+    </script>
+</body>
+</html>
