@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caregiver Registration - Fall Detection System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .registration-form {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .form-title {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .alert {
+            margin-bottom: 1rem;
+            display: none;
+        }
+        .form-floating {
+            margin-bottom: 1rem;
+        }
+        .btn-register {
+            width: 100%;
+            padding: 0.8rem;
+            font-size: 1.1rem;
+        }
+        .telegram-steps {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        .step {
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+        }
+        .step:last-child {
+            margin-bottom: 0;
+        }
+        .step-number {
+            background: #2196f3;
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        .bot-link {
+            background: #0088cc;
+            color: white !important;
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-block;
+            margin: 0.5rem 0;
+        }
+        .bot-link:hover {
+            background: #006699;
+            color: white !important;
+        }
+        .chat-id-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="registration-form">
+            <h2 class="form-title">🚨 Registro de Cuidador</h2>
+            
+            <div class="alert alert-danger" id="errorAlert" role="alert"></div>
+            <div class="alert alert-success" id="successAlert" role="alert"></div>
+
+            <!-- Telegram Setup Instructions -->
+            <div class="telegram-steps">
+                <h5 class="text-primary mb-3">📱 Configuración de Telegram (Requerido)</h5>
+                
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <strong>Contacta nuestro bot:</strong><br>
+                    <a href="https://t.me/fall_detection_alertbot" class="bot-link" target="_blank">
+                        📱 Abrir Bot de Alertas
+                    </a>
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <strong>Envía el comando:</strong> <code>/start</code>
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <strong>El bot te enviará tu Chat ID.</strong> Cópialo y pégalo abajo.
+                </div>
+            </div>
+
+            <form id="registrationForm">
+                <div class="form-floating">
+                    <input type="email" class="form-control" id="email" name="email" 
+                           placeholder="name@example.com" required>
+                    <label for="email">📧 Email</label>
+                </div>
+
+                <div class="form-floating">
+                    <input type="tel" class="form-control" id="phoneNumber" name="phoneNumber" 
+                           placeholder="Phone Number" required>
+                    <label for="phoneNumber">📞 <Phone Number></label>
+                </div>
+
+                <div class="form-floating">
+                    <input type="text" class="form-control" id="telegramChatId" name="telegramChatId" 
+                           placeholder="1234567890" required pattern="[0-9]+">
+                    <label for="telegramChatId">💬 Telegram Chat ID</label>
+                </div>
+
+                <div class="chat-id-info">
+                    <small>
+                        <strong>⚠️ Importante:</strong> El Chat ID es una secuencia de números (ej: 1304537971) 
+                        que obtienes del bot de Telegram. Sin este ID no podrás recibir alertas por Telegram.
+                    </small>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-register mt-3">
+                    ✅ Registrar Cuidador
+                </button>
+            </form>
+
+            <div class="text-center mt-3">
+                <small class="text-muted">
+                    Al registrarte, aceptas recibir notificaciones de emergencia por email y Telegram.
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('registrationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Hide any previous alerts
+            document.getElementById('errorAlert').style.display = 'none';
+            document.getElementById('successAlert').style.display = 'none';
+
+            // Basic validation
+            const inputs = this.querySelectorAll('input[required]');
+            let isValid = true;
+
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    isValid = false;
+                    input.classList.add('is-invalid');
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+
+            // Email validation
+            const email = document.getElementById('email');
+            if (email.value && !email.value.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+                isValid = false;
+                email.classList.add('is-invalid');
+                showError('Por favor ingresa un email válido.');
+                return;
+            }
+
+            // Phone validation
+            const phone = document.getElementById('phoneNumber');
+            if (phone.value && !phone.value.match(/^\+?[\d\s-]{8,}$/)) {
+                isValid = false;
+                phone.classList.add('is-invalid');
+                showError('Por favor ingresa un número de teléfono válido.');
+                return;
+            }
+
+            // Chat ID validation
+            const chatId = document.getElementById('telegramChatId');
+            if (chatId.value && !chatId.value.match(/^[0-9]+$/)) {
+                isValid = false;
+                chatId.classList.add('is-invalid');
+                showError('El Chat ID debe contener solo números.');
+                return;
+            }
+
+            if (!isValid) {
+                showError('Por favor completa todos los campos correctamente.');
+                return;
+            }
+
+            // Prepare the data
+            const formData = {
+                email: document.getElementById('email').value,
+                phoneNumber: document.getElementById('phoneNumber').value,
+                telegramChatId: document.getElementById('telegramChatId').value
+            };
+
+            // Show loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '⏳ Registrando...';
+            submitBtn.disabled = true;
+
+            // Send the data to the server
+            try {
+                const response = await fetch('/caregivers/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccess(`🎉 ¡Registro exitoso!
+                    
+📋 Tu ID de Cuidador: ${data.caregiverId}
+📱 Tu ID de Dispositivo: ${data.deviceId}
+                    
+${data.telegramStatus ? '📱 ' + data.telegramStatus : ''}
+
+✅ Ya puedes recibir alertas de emergencia por email y Telegram.`);
+                    this.reset(); // Clear the form
+                } else {
+                    showError(data.error || 'Error en el registro. Por favor intenta nuevamente.');
+                }
+            } catch (error) {
+                showError('Error de conexión con el servidor. Por favor intenta nuevamente.');
+                console.error('Error:', error);
+            } finally {
+                // Restore button state
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Helper functions to show alerts
+        function showError(message) {
+            const alert = document.getElementById('errorAlert');
+            alert.innerHTML = message.replace(/\n/g, '<br>');
+            alert.style.display = 'block';
+            // Scroll to top to show error
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showSuccess(message) {
+            const alert = document.getElementById('successAlert');
+            alert.innerHTML = message.replace(/\n/g, '<br>');
+            alert.style.display = 'block';
+            // Scroll to top to show success
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Remove invalid class on input
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', function() {
+                this.classList.remove('is-invalid');
+            });
+        });
+
+        // Auto-format chat ID (only numbers)
+        document.getElementById('telegramChatId').addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        });
+    </script>
+</body>
+</html>

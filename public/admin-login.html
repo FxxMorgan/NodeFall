@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Administrativo - Sistema de Detección de Caídas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            padding: 3rem;
+            max-width: 400px;
+            width: 100%;
+            margin: 1rem;
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .login-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 1rem;
+        }
+        .form-floating {
+            margin-bottom: 1.5rem;
+        }
+        .btn-login {
+            width: 100%;
+            padding: 0.8rem;
+            font-size: 1.1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+        }
+        .btn-login:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+        .btn-login:disabled {
+            opacity: 0.7;
+            transform: none;
+        }
+        .alert {
+            border-radius: 10px;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #6c757d;
+            z-index: 10;
+        }
+        .form-floating {
+            position: relative;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+        .security-info {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="login-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h2 class="mb-2">Panel Administrativo</h2>
+            <p class="text-muted">Acceso restringido al personal autorizado</p>
+        </div>
+
+        <div class="alert alert-danger" id="errorAlert" style="display: none;"></div>
+
+        <form id="loginForm">
+            <div class="form-floating">
+                <input type="password" class="form-control" id="adminPassword" 
+                       placeholder="Contraseña de administrador" required>
+                <label for="adminPassword">
+                    <i class="fas fa-lock"></i> Contraseña de Administrador
+                </label>
+                <span class="password-toggle" onclick="togglePassword()">
+                    <i class="fas fa-eye" id="toggleIcon"></i>
+                </span>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-login">
+                <i class="fas fa-sign-in-alt"></i> Acceder al Panel
+            </button>
+        </form>
+
+        <div class="security-info">
+            <i class="fas fa-info-circle"></i>
+            <strong>Conexión Segura:</strong> Las credenciales se verifican de forma segura en el servidor.
+        </div>
+
+        <div class="back-link">
+            <a href="/">
+                <i class="fas fa-arrow-left"></i> Volver al Dashboard Principal
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Check if already authenticated
+        if (localStorage.getItem('adminAuthenticated') === 'true') {
+            const loginTime = localStorage.getItem('adminLoginTime');
+            if (loginTime && (Date.now() - parseInt(loginTime)) < 86400000) {
+                window.location.href = '/admin.html';
+            } else {
+                // Clear expired session
+                localStorage.removeItem('adminAuthenticated');
+                localStorage.removeItem('adminToken');
+                localStorage.removeItem('adminLoginTime');
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const password = document.getElementById('adminPassword').value;
+            const submitBtn = this.querySelector('button[type="submit"]');
+            
+            // Show loading state
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Store secure token instead of password
+                    localStorage.setItem('adminToken', data.token);
+                    localStorage.setItem('adminLoginTime', Date.now().toString());
+                    localStorage.setItem('adminAuthenticated', 'true');
+                    
+                    // Clear password field for security
+                    document.getElementById('adminPassword').value = '';
+                    
+                    // Redirect to admin panel
+                    window.location.href = '/admin.html';
+                } else {
+                    showError(data.error || 'Contraseña incorrecta. Acceso denegado.');
+                    document.getElementById('adminPassword').value = '';
+                    document.getElementById('adminPassword').focus();
+                }
+            } catch (error) {
+                showError('Error de conexión. Intenta nuevamente.');
+                console.error('Login error:', error);
+            } finally {
+                // Restore button state
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        function togglePassword() {
+            const passwordInput = document.getElementById('adminPassword');
+            const toggleIcon = document.getElementById('toggleIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.className = 'fas fa-eye-slash';
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.className = 'fas fa-eye';
+            }
+        }
+
+        function showError(message) {
+            const errorAlert = document.getElementById('errorAlert');
+            errorAlert.textContent = message;
+            errorAlert.style.display = 'block';
+            
+            // Hide error after 5 seconds
+            setTimeout(() => {
+                errorAlert.style.display = 'none';
+            }, 5000);
+        }
+
+        // Focus on password input
+        document.getElementById('adminPassword').focus();
+
+        // Clear any stored credentials when page loads
+        document.getElementById('adminPassword').value = '';
+    </script>
+</body>
+</html>

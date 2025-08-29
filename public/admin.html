@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Sistema de Detección de Caídas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .admin-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .admin-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .device-group {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            background: #f8f9fa;
+        }
+        .device-group.has-multiple {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+        .caregiver-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .caregiver-item.primary {
+            border-color: #007bff;
+            background: #f0f8ff;
+        }
+        .btn-action {
+            margin: 0.2rem;
+        }
+        .stats-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .stats-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .alert-warning {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <!-- Admin Header -->
+    <div class="admin-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-4 mb-0">
+                        <i class="fas fa-cog"></i> Panel de Administración
+                    </h1>
+                    <p class="lead mb-0">Gestión de Cuidadores y Dispositivos</p>
+                </div>
+                <div>
+                    <button class="btn btn-outline-light" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Quick Stats -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                    <div class="stats-number" id="totalDevices">0</div>
+                    <div class="text-muted">Dispositivos</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                    <div class="stats-number" id="totalCaregivers">0</div>
+                    <div class="text-muted">Cuidadores</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                    <div class="stats-number" id="multipleDevices">0</div>
+                    <div class="text-muted">Con Múltiples</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                    <div class="stats-number" id="totalAlerts">0</div>
+                    <div class="text-muted">Alertas Total</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Actions -->
+        <div class="admin-card p-4 mb-4">
+            <h3 class="mb-3"><i class="fas fa-plus-circle text-primary"></i> Acciones Rápidas</h3>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addCaregiverModal">
+                        <i class="fas fa-user-plus"></i> Agregar Cuidador a Dispositivo Existente
+                    </button>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <button class="btn btn-info w-100" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i> Actualizar Datos
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Devices and Caregivers List -->
+        <div class="admin-card p-4">
+            <h3 class="mb-3"><i class="fas fa-list text-success"></i> Dispositivos y Cuidadores</h3>
+            <div id="devicesContainer">
+                <div class="text-center py-4">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p class="mt-2">Cargando datos...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Caregiver Modal -->
+    <div class="modal fade" id="addCaregiverModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-plus"></i> Agregar Cuidador a Dispositivo
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addCaregiverForm">
+                        <div class="mb-3">
+                            <label for="deviceSelect" class="form-label">Dispositivo</label>
+                            <select class="form-select" id="deviceSelect" required>
+                                <option value="">Seleccionar dispositivo...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="newEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="newEmail" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="newPhone" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="newPhone" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="newTelegramId" class="form-label">Telegram Chat ID</label>
+                            <input type="text" class="form-control" id="newTelegramId" 
+                                   pattern="[0-9]+" placeholder="1234567890" required>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Nota:</strong> Este cuidador recibirá las mismas alertas que los otros cuidadores del dispositivo seleccionado.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="addCaregiver()">
+                        <i class="fas fa-save"></i> Agregar Cuidador
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Caregiver Modal -->
+    <div class="modal fade" id="editCaregiverModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit"></i> Editar Cuidador
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editCaregiverForm">
+                        <input type="hidden" id="editCaregiverId">
+                        
+                        <div class="mb-3">
+                            <label for="editEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="editEmail" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editPhone" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="editPhone" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editTelegramId" class="form-label">Telegram Chat ID</label>
+                            <input type="text" class="form-control" id="editTelegramId" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editDeviceId" class="form-label">Device ID</label>
+                            <select class="form-select" id="editDeviceId" required>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="updateCaregiver()">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Check authentication before loading
+        function checkAuthentication() {
+            const isAuthenticated = localStorage.getItem('adminAuthenticated');
+            const loginTime = localStorage.getItem('adminLoginTime');
+            
+            // Check if authenticated and not expired (24 hours)
+            if (!isAuthenticated || isAuthenticated !== 'true') {
+                window.location.href = '/admin-login.html';
+                return false;
+            }
+            
+            // Check if login expired (24 hours = 86400000 ms)
+            if (loginTime && (Date.now() - parseInt(loginTime)) > 86400000) {
+                localStorage.removeItem('adminAuthenticated');
+                localStorage.removeItem('adminLoginTime');
+                window.location.href = '/admin-login.html';
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Add logout functionality
+        function logout() {
+            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                localStorage.removeItem('adminAuthenticated');
+                localStorage.removeItem('adminLoginTime');
+                window.location.href = '/admin-login.html';
+            }
+        }
+
+        // Check authentication on page load
+        if (!checkAuthentication()) {
+            // Will redirect to login, so stop execution
+            throw new Error('Not authenticated');
+        }
+
+        let caregivers = [];
+        let devices = {};
+
+        async function loadData() {
+            try {
+                // Load caregivers
+                const caregiversResponse = await fetch('/caregivers');
+                caregivers = await caregiversResponse.json();
+                
+                // Load alerts for stats
+                const alertsResponse = await fetch('/alerts');
+                const alertsData = await alertsResponse.json();
+                const alerts = alertsData.alerts || alertsData;
+                
+                // Group caregivers by device
+                devices = {};
+                caregivers.forEach(caregiver => {
+                    if (!devices[caregiver.deviceId]) {
+                        devices[caregiver.deviceId] = [];
+                    }
+                    devices[caregiver.deviceId].push(caregiver);
+                });
+                
+                updateStats(alerts);
+                renderDevices();
+                populateDeviceSelects();
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showAlert('Error al cargar los datos', 'danger');
+            }
+        }
+
+        function updateStats(alerts) {
+            const totalDevices = Object.keys(devices).length;
+            const totalCaregivers = caregivers.length;
+            const multipleDevices = Object.values(devices).filter(device => device.length > 1).length;
+            
+            document.getElementById('totalDevices').textContent = totalDevices;
+            document.getElementById('totalCaregivers').textContent = totalCaregivers;
+            document.getElementById('multipleDevices').textContent = multipleDevices;
+            document.getElementById('totalAlerts').textContent = alerts.length;
+        }
+
+        function renderDevices() {
+            const container = document.getElementById('devicesContainer');
+            
+            if (Object.keys(devices).length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-2x text-muted"></i>
+                        <p class="mt-2 text-muted">No hay dispositivos registrados</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = Object.entries(devices)
+                .sort(([a], [b]) => parseInt(a) - parseInt(b))
+                .map(([deviceId, deviceCaregivers]) => {
+                    const isMultiple = deviceCaregivers.length > 1;
+                    
+                    return `
+                        <div class="device-group ${isMultiple ? 'has-multiple' : ''}">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-mobile-alt text-primary"></i> 
+                                    Dispositivo ${deviceId}
+                                    ${isMultiple ? '<span class="badge bg-success ms-2">Múltiples Cuidadores</span>' : ''}
+                                </h5>
+                                <small class="text-muted">${deviceCaregivers.length} cuidador(es)</small>
+                            </div>
+                            
+                            ${deviceCaregivers.map((caregiver, index) => `
+                                <div class="caregiver-item ${index === 0 ? 'primary' : ''}">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-8">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="fas fa-user text-secondary me-2"></i>
+                                                <strong>Cuidador ${caregiver.caregiverId}</strong>
+                                                ${index === 0 ? '<span class="badge bg-primary ms-2">Principal</span>' : '<span class="badge bg-secondary ms-2">Secundario</span>'}
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <small class="text-muted d-block">
+                                                        <i class="fas fa-envelope"></i> ${caregiver.email}
+                                                    </small>
+                                                    <small class="text-muted d-block">
+                                                        <i class="fas fa-phone"></i> ${caregiver.phoneNumber}
+                                                    </small>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <small class="text-muted d-block">
+                                                        <i class="fab fa-telegram"></i> ${caregiver.telegramUsername}
+                                                    </small>
+                                                    <small class="text-muted d-block">
+                                                        <i class="fas fa-calendar"></i> ${new Date(caregiver.createdAt).toLocaleDateString()}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 text-end">
+                                            <button class="btn btn-sm btn-outline-primary btn-action" 
+                                                    onclick="editCaregiver('${caregiver._id}')" 
+                                                    data-bs-toggle="modal" data-bs-target="#editCaregiverModal">
+                                                <i class="fas fa-edit"></i> Editar
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger btn-action" 
+                                                    onclick="deleteCaregiver('${caregiver._id}', '${caregiver.caregiverId}')">
+                                                <i class="fas fa-trash"></i> Eliminar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }).join('');
+        }
+
+        function populateDeviceSelects() {
+            const deviceSelect = document.getElementById('deviceSelect');
+            const editDeviceSelect = document.getElementById('editDeviceId');
+            
+            const options = Object.keys(devices)
+                .sort((a, b) => parseInt(a) - parseInt(b))
+                .map(deviceId => `<option value="${deviceId}">Dispositivo ${deviceId}</option>`)
+                .join('');
+            
+            deviceSelect.innerHTML = '<option value="">Seleccionar dispositivo...</option>' + options;
+            editDeviceSelect.innerHTML = options;
+        }
+
+        async function addCaregiver() {
+            const form = document.getElementById('addCaregiverForm');
+            const formData = new FormData(form);
+            
+            const data = {
+                email: document.getElementById('newEmail').value,
+                phoneNumber: document.getElementById('newPhone').value,
+                telegramChatId: document.getElementById('newTelegramId').value,
+                deviceId: document.getElementById('deviceSelect').value
+            };
+
+            try {
+                const response = await fetch('/caregivers/admin/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Cuidador agregado exitosamente', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('addCaregiverModal')).hide();
+                    form.reset();
+                    loadData();
+                } else {
+                    showAlert(result.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error al agregar cuidador', 'danger');
+                console.error(error);
+            }
+        }
+
+        function editCaregiver(caregiverId) {
+            const caregiver = caregivers.find(c => c._id === caregiverId);
+            if (!caregiver) return;
+
+            document.getElementById('editCaregiverId').value = caregiverId;
+            document.getElementById('editEmail').value = caregiver.email;
+            document.getElementById('editPhone').value = caregiver.phoneNumber;
+            document.getElementById('editTelegramId').value = caregiver.telegramUsername;
+            document.getElementById('editDeviceId').value = caregiver.deviceId;
+        }
+
+        async function updateCaregiver() {
+            const caregiverId = document.getElementById('editCaregiverId').value;
+            
+            const data = {
+                email: document.getElementById('editEmail').value,
+                phoneNumber: document.getElementById('editPhone').value,
+                telegramUsername: document.getElementById('editTelegramId').value,
+                deviceId: document.getElementById('editDeviceId').value
+            };
+
+            try {
+                const response = await fetch(`/caregivers/${caregiverId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Cuidador actualizado exitosamente', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('editCaregiverModal')).hide();
+                    loadData();
+                } else {
+                    showAlert(result.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error al actualizar cuidador', 'danger');
+                console.error(error);
+            }
+        }
+
+        async function deleteCaregiver(caregiverId, caregiverIdDisplay) {
+            if (!confirm(`¿Estás seguro de eliminar al Cuidador ${caregiverIdDisplay}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/caregivers/${caregiverId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Cuidador eliminado exitosamente', 'success');
+                    loadData();
+                } else {
+                    showAlert(result.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error al eliminar cuidador', 'danger');
+                console.error(error);
+            }
+        }
+
+        function refreshData() {
+            loadData();
+            showAlert('Datos actualizados', 'info');
+        }
+
+        function showAlert(message, type) {
+            // Create alert element
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            document.body.appendChild(alertDiv);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // Load data on page load
+        loadData();
+    </script>
+</body>
+</html>
