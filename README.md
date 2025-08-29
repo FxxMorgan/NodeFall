@@ -32,8 +32,8 @@ Un sistema integral de detección de caídas con alertas automáticas vía Teleg
 
 1. **Clona el repositorio**
    ```bash
-   git clone https://github.com/tu-usuario/detection.git
-   cd detection
+   git clone https://github.com/FxxMorgan/NodeFall.git
+   cd NodeFall
    ```
 
 2. **Instala las dependencias**
@@ -176,9 +176,9 @@ Esto significa que:
 
 ## Contacto
 
-- **Desarrollador**: [Tu Nombre]
-- **Email**: tu.email@ejemplo.com
-- **GitHub**: [@tu-usuario](https://github.com/tu-usuario)
+- **Desarrollador**: FxxMorgan
+- **GitHub**: [@FxxMorgan](https://github.com/FxxMorgan)
+- **Repositorio**: [NodeFall](https://github.com/FxxMorgan/NodeFall)
 
 ## Reconocimientos
 

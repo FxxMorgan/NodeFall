@@ -25,12 +25,12 @@
   "license": "GPL-3.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/FxxMorgan/fall-detection-system.git"
+    "url": "https://github.com/FxxMorgan/NodeFall.git"
   },
   "bugs": {
-    "url": "https://github.com/FxxMorgan/fall-detection-system/issues"
+    "url": "https://github.com/FxxMorgan/NodeFall/issues"
   },
-  "homepage": "https://github.com/FxxMorgan/fall-detection-system#readme",
+  "homepage": "https://github.com/FxxMorgan/NodeFall#readme",
   "engines": {
     "node": ">=14.0.0",
     "npm": ">=6.0.0"
